@@ -11,10 +11,11 @@
     "dev": "node --watch index.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "build:ui": "rm -rf dist && cd ../../osa2/puhelinluettelo && npm run build && cp -r dist ../../osa3/puhelinluettelo",
-    "deploy:full": "npm run build:ui && git add . && git commit-m uibuild && git push"
+    "deploy:full": "npm run build:ui && git add . && git commit -m uibuild && git push"
   },
   "dependencies": {
     "express": "^5.1.0",
+    "mongoose": "^8.20.0",
     "morgan": "^1.10.1"
   }
 }
