@@ -97,10 +97,12 @@ const App = () => {
             notification(`Updated number for ${returnedPerson.name}`)
           })
           .catch(error => {
-            errorMessage(
-              `${existingPerson.name} has already been removed from the server`
-            )
-            setPersons(persons.filter(p => p.id !== existingPerson.id))
+            if (error.response && error.response.data && error.response.data.error) {
+              errorMessage(error.response.data.error)
+            } else {
+              errorMessage(`${existingPerson.name} has already been removed from the server`)
+              setPersons(persons.filter(p => p.id !== existingPerson.id))
+            }
           })
       }
       return
@@ -115,6 +117,9 @@ const App = () => {
         setNewName('')
         setNewNumber('')
         notification(`Added ${returnedPerson.name}`)
+      })
+      .catch(error => {
+        errorMessage(error.response.data.error)
       })
   }
 
