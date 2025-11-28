@@ -1,0 +1,10 @@
+POST http://localhost:3003/api/blogs
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6InJvb3QiLCJpZCI6IjY5Mjk5ZjQzMTQ2YThjYjg2OTdkNWY0YyIsImlhdCI6MTc2NDMzODY1MX0.Gz4HMmJhAp4M3m6Doj5wYpFttLdGhX5uAmKW3haMWH8
+
+{
+    "title": "asdf",
+    "author": "idk man",
+    "url": "abc.dfg",
+    "likes": 3
+}

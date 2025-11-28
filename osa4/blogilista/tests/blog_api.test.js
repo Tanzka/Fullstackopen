@@ -1,14 +1,32 @@
 const assert = require('node:assert')
-const { test, after, beforeEach, describe } = require('node:test')
+const { test, after, before, beforeEach, describe } = require('node:test')
 const mongoose = require('mongoose')
 const supertest = require('supertest')
-const bcrypt = require('bcrypt')
 const app = require('../app')
 const Blog = require('../models/blog')
 const User = require('../models/user')
 const helper = require('./test_helper')
 
 const api = supertest(app)
+
+let authorization
+
+before(async () => {
+    console.log('im in.jpg')
+    await User.deleteMany({})
+    const user = {
+        username: 'root',
+        password: 'sekret'
+    }
+
+    await api.post('/api/users').send(user)
+
+    const response = await api 
+        .post('/api/login')
+        .send({ username: 'root', password: 'sekret' })
+    
+    authorization = `Bearer ${response.body.token}`
+})
 
 
 beforeEach(async () => {
@@ -38,7 +56,7 @@ test('all blogs have id parameter', async () => {
     })
 })
 
-test('a new blog can be added', async () => {
+test('a new blog can be added with valid token', async () => {
     const blogsAtStart = await helper.blogsInDb()
 
     const newBlog = {
@@ -48,8 +66,9 @@ test('a new blog can be added', async () => {
         likes: 10
     }
 
-    const response = await api 
+    await api 
         .post('/api/blogs')
+        .set({'Authorization': authorization})
         .send(newBlog)
         .expect(201)
         .expect('Content-Type', /application\/json/)
@@ -70,6 +89,7 @@ test('likes default to zero if no value given', async () => {
 
     const sentBlog = await api 
         .post('/api/blogs')
+        .set({'Authorization': authorization})
         .send(newBlog)
         .expect(201)
         .expect('Content-Type', /application\/json/)
@@ -88,6 +108,7 @@ test('returns status 400 if title not given', async () => {
 
     await api 
         .post('/api/blogs')
+        .set({'Authorization': authorization})
         .send(newBlog)
         .expect(400)
         .expect('Content-Type', /application\/json/)
@@ -107,6 +128,7 @@ test('returns 400 if url not given', async () => {
 
     await api 
         .post('/api/blogs')
+        .set({'Authorization': authorization})
         .send(newBlog)
         .expect(400)
         .expect('Content-Type', /application\/json/)
@@ -115,19 +137,32 @@ test('returns 400 if url not given', async () => {
     assert.strictEqual(blogsAtEnd.length, blogsAtStart.length)
 })
 
-test('a blog can be deleted', async () => {
+test('a blog can be deleted with valid token', async () => {
+    const newBlog = {
+        title: 'Deleting this',
+        author: 'Guy Fieri',
+        url: 'http://delete.this',
+        likes: 25
+    }
+
+    const createdBlog = await api
+        .post('/api/blogs')
+        .set({ 'Authorization': authorization })
+        .send(newBlog)
+        .expect(201)
+    
     const blogsAtStart = await helper.blogsInDb()
-    const blogToDelete = blogsAtStart[0]
 
     await api 
-        .delete(`/api/blogs/${blogToDelete.id}`)
+        .delete(`/api/blogs/${createdBlog.body.id}`)
+        .set({ 'Authorization': authorization })
         .expect(204)
     
     const blogsAtEnd = await helper.blogsInDb()
     assert.strictEqual(blogsAtEnd.length, blogsAtStart.length - 1)
 
-    const titles = blogsAtEnd.map(b => b.title)
-    assert.ok(!titles.includes(blogToDelete.title))
+    const ids = blogsAtEnd.map(b => b.id)
+    assert.ok(!ids.includes(createdBlog.body.id))
 })
 
 test('a blog can be updated', async () => {
@@ -150,60 +185,25 @@ test('a blog can be updated', async () => {
     assert.strictEqual(blogsAtEnd[0].likes, updatedBlog.likes)
 })
 
-describe('when there is initially one user at db', () => {
-    beforeEach(async () => {
-        await User.deleteMany({})
+test('returns a 401 if there is no token', async () => {
+    const newBlog = {
+        title: "werp",
+        author: "herp",
+        url: "derp.derp",
+        likes: 5
+    }
 
-        const passwordHash = await bcrypt.hash('sekret', 10)
-        const user = new User({ username: 'root', passwordHash })
-
-        await user.save()
-    })
-
-    test('creation succeeds with a fresh username', async () => {
-        const usersAtStart = await helper.usersInDb()
-
-        const newUser = {
-            username: 'spongebob',
-            name: 'Spongebob Squarepants',
-            password: 'salainen'
-        }
-
-        await api 
-            .post('/api/users')
-            .send(newUser)
-            .expect(201)
-            .expect('Content-Type', /application\/json/)
-        
-        const usersAtEnd = await helper.usersInDb()
-        assert.strictEqual(usersAtEnd.length, usersAtStart.length + 1)
-
-        const usernames = usersAtEnd.map(u => u.username)
-        assert(usernames.includes(newUser.username))
-    })
-
-    test('creation fails with proper statuscode and message if username already taken', async () => {
-        const usersAtStart = await helper.usersInDb()
-
-        const newUser = {
-            username: 'root',
-            name: 'Superuser',
-            password: 'salainen',
-        }
-
-        const result = await api 
-            .post('/api/users')
-            .send(newUser)
-            .expect(400)
-            .expect('Content-Type', /application\/json/)
-        
-        const usersAtEnd = await helper.usersInDb()
-        assert(result.body.error.includes('expected `username` to be unique'))
-
-        assert.strictEqual(usersAtEnd.length, usersAtStart.length)
-    })
+    await api
+        .post('/api/blogs')
+        .send(newBlog)
+        .expect(401)
+        .expect('Content-Type', /application\/json/)
+    
+    const response = await api 
+        .get('/api/blogs')
+    
+    assert.strictEqual(response.body.length, helper.initialBlogs.length)
 })
-
 
 after(async () => {
     await mongoose.connection.close()
