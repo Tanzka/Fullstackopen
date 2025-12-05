@@ -1,7 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Blog from './components/Blog'
 import blogService from './services/blogs'
 import loginService from './services/login'
+import BlogForm from './components/BlogForm'
+import Togglable from './components/Togglable'
 
 const Notification = ({ message, className }) => {
   if (message === null) {
@@ -23,9 +25,7 @@ const App = () => {
   const [errorMessage, setErrorMessage] = useState(null)
   const [message, setMessage] = useState(null)
 
-  const [newTitle, setNewTitle] = useState('')
-  const [newAuthor, setNewAuthor] = useState('')
-  const [newUrl, setNewUrl] = useState('')
+  const blogFormRef = useRef()
 
   useEffect(() => {
     if (user === null) {
@@ -79,24 +79,54 @@ const App = () => {
     }
   }
 
-  const handleCreateBlog = async event => {
-    event.preventDefault()
-
-    const blogObject = {
-      title: newTitle,
-      author: newAuthor,
-      url: newUrl
-    }
-
+  const handleCreateBlog = async (blogObject) => {
     try {
-      const returnedBlog = await blogService.create(blogObject)
+      let returnedBlog = await blogService.create(blogObject)
+      returnedBlog = {
+        ...returnedBlog,
+      }
       setBlogs(blogs.concat(returnedBlog))
-      setNewTitle('')
-      setNewAuthor('')
-      setNewUrl('')
+      blogFormRef.current.toggleVisibility()
       showNotification(`A new blog ${returnedBlog.title} by ${returnedBlog.author} added!`)
     } catch {
       showError('Failed to create a blog')
+    }
+  }
+
+  const handleLike = async (blogToUpdate) => {
+    const updatedBlog = {
+      ...blogToUpdate,
+      likes: blogToUpdate.likes + 1,
+      user: blogToUpdate.user.id,
+    }
+
+    try {
+      const returnedBlog = await blogService.update(
+        blogToUpdate.id,
+        updatedBlog
+      )
+
+      setBlogs(blogs.map(blog => blog.id !== blogToUpdate.id ? blog : { ...returnedBlog, user: blogToUpdate.user }))
+    } catch (error) {
+      console.error('DID NOT WORK:', error.response?.data || error.message || error)
+    }
+  }
+
+  const handleRemove = async (blogToRemove) => {
+    const confirmDeletion = window.confirm(
+      `Remove blog ${blogToRemove.title} by ${blogToRemove.author}?`
+    )
+
+    if (!confirmDeletion) {
+      return
+    }
+
+    try {
+      await blogService.remove(blogToRemove.id)
+      setBlogs(blogs.filter(blog => blog.id !== blogToRemove.id))
+      showNotification(`Blog ${blogToRemove.title} removed successfully`)
+    } catch (error) {
+      console.error('Failed:', error.response?.data || error.message)
     }
   }
 
@@ -131,42 +161,6 @@ const App = () => {
     )
   }
 
-  const blogForm = () => (
-    <div>
-      <h2>Create new</h2>
-      <form onSubmit={handleCreateBlog}>
-        <div>
-          <label>
-            title:
-            <input
-              value={newTitle}
-              onChange={({ target }) => setNewTitle(target.value)}
-            />
-          </label>
-        </div>
-        <div>
-          <label>
-            author:
-            <input
-              value={newAuthor}
-              onChange={({ target }) => setNewAuthor(target.value)}
-            />
-          </label>
-        </div>
-        <div>
-          <label>
-            url:
-            <input
-              value={newUrl}
-              onChange={({ target }) => setNewUrl(target.value)}
-            />
-          </label>
-        </div>
-        <button type="submit">Create</button>
-      </form>
-    </div>
-  )
-
   const loggedInView = () => {
     return (
       <div>
@@ -178,12 +172,18 @@ const App = () => {
           </p>
         </div>
 
-        {blogForm()}
+        <Togglable buttonLabel="Create new blog" ref={blogFormRef}>
+          <BlogForm createBlog={handleCreateBlog} />
+        </Togglable>
 
         <div>
-          {blogs.map(blog =>
-            <Blog key={blog.id} blog={blog} />
-          )}
+          {blogs
+            .sort((a, b) => b.likes - a.likes)
+            .map(blog =>
+              <Blog key={blog.id} blog={blog} handleLike={() => handleLike(blog)}
+              handleRemove={() => handleRemove(blog)}
+              currentUserId={user.id} />
+            )}
         </div>
       </div>
     )
