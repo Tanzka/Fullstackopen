@@ -33,11 +33,11 @@ const App = () => {
     }
     blogService.getAll().then(blogs =>
       setBlogs( blogs )
-    )  
+    )
   }, [user])
 
   useEffect(() => {
-    const loggedUserJSON = window.localStorage.getItem(`loggedBlogappUser`)
+    const loggedUserJSON = window.localStorage.getItem('loggedBlogappUser')
     if (loggedUserJSON) {
       const user = JSON.parse(loggedUserJSON)
       setUser(user)
@@ -56,7 +56,7 @@ const App = () => {
   }
 
   const handleLogout = () => {
-    window.localStorage.removeItem(`loggedBlogappUser`)
+    window.localStorage.removeItem('loggedBlogappUser')
     setUser(null)
     blogService.setToken(null)
     setBlogs([])
@@ -68,7 +68,7 @@ const App = () => {
 
     try {
       const user = await loginService.login({ username, password })
-      window.localStorage.setItem(`loggedBlogappUser`, JSON.stringify(user))
+      window.localStorage.setItem('loggedBlogappUser', JSON.stringify(user))
       blogService.setToken(user.token)
       setUser(user)
       setUsername('')
@@ -135,28 +135,28 @@ const App = () => {
       <div>
         <h2>log in to application</h2>
         <form onSubmit={handleLogin}>
-        <div>
-          <label>
+          <div>
+            <label>
             username
-            <input
-              type="text"
-              value={username}
-              onChange={ ({ target }) => setUsername(target.value) }
-            />
-          </label>
-        </div>
-        <div>
-          <label>
+              <input
+                type="text"
+                value={username}
+                onChange={ ({ target }) => setUsername(target.value) }
+              />
+            </label>
+          </div>
+          <div>
+            <label>
             password
-            <input
-            type="password"
-            value={password}
-            onChange = {({ target })=> setPassword(target.value)}
-          />
-          </label>
-        </div>
-        <button type="submit">Login</button>
-      </form>
+              <input
+                type="password"
+                value={password}
+                onChange = {({ target }) => setPassword(target.value)}
+              />
+            </label>
+          </div>
+          <button type="submit">Login</button>
+        </form>
       </div>
     )
   }
@@ -181,8 +181,8 @@ const App = () => {
             .sort((a, b) => b.likes - a.likes)
             .map(blog =>
               <Blog key={blog.id} blog={blog} handleLike={() => handleLike(blog)}
-              handleRemove={() => handleRemove(blog)}
-              currentUserId={user.id} />
+                handleRemove={() => handleRemove(blog)}
+                currentUserId={user.id} />
             )}
         </div>
       </div>
