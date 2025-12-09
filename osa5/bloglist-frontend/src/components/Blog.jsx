@@ -7,9 +7,6 @@ const Blog = ({ blog, handleLike, handleRemove, currentUserId }) => {
   const toggleDetails = () => {
     setDetailsVisible(!detailsVisible)
   }
-  console.log('BLOG:', blog)
-  console.log('BLOG USER:', blog.user)
-  console.log('CURRENT USER ID:', currentUserId)
 
 
   const showDeleteButton = blog.user && String(blog.user.id) === String(currentUserId)
