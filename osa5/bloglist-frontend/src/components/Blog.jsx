@@ -47,7 +47,7 @@ const Blog = ({ blog, handleLike, handleRemove, currentUserId }) => {
   )
 
   return (
-    <div style={blogStyle}>
+    <div style={blogStyle} className='blog'>
       {minimalView}
       {detailsVisible && detailedView}
     </div>
